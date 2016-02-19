@@ -4,10 +4,12 @@
 #include <iostream>
 //#include <stdlib.h>
 //#include <string>
-#include "sudoku.h"
+#include "puzzle.h"
 
 using namespace std;
 
 int main()
 {
+   Puzzle<char> puz;
+   puz.display();
 } 
