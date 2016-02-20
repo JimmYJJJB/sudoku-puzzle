@@ -10,6 +10,6 @@ using namespace std;
 
 int main()
 {
-   Puzzle<char> puz;
-   puz.display();
+   Puzzle<int> puz;
+   puz.play();
 } 
