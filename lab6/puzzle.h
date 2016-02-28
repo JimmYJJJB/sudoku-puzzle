@@ -1,6 +1,6 @@
 //Daniel Jasek
-//cse20212 lab4
-//class interface and implementation for the Puzzle class - enables a game of sudoku to be played
+//cse20212 lab6
+//class interface and implementation for the Puzzle class - enables a game of sudoku to be played and has methods solve the puzzle using an AI
 
 #ifndef PUZZLE_H
 #define PUZZLE_H
@@ -27,21 +27,21 @@ class Puzzle
       void updateBoard(); // update cell
       int isValidEntry(); // checks if move is valid sudoku move
       int hasWon(); // checks if board is full
-      void solve();
-      void print3D();
-      void findPossibilities();
-      void AIscan();
-      void singleton();
+      void print3D(); // print the 3d vector used to keeping track of valid moves - useful for debugging
+      void AIscan(); // scanning solving technique
+      void singleton(); // singleton solving technique
 
    private:
       vector<vector<T> > board; // 2-d array of vectors
       vector<vector<T> > origBoard; // copy of original board
-      vector<vector<vector<T> > > scanBoard; 
+      vector<vector<vector<T> > > scanBoard; // 3d vector that stores valid entries for each space
       int size; // nxn grid
       int row; // currenty row coordinate
       int col; // current column
       int number; // current user entry
 
+      int findSearchRowOrCol(int r);
+      void findPossibilities(); // populates 3d vector
 };
 
 // templated constructor - lets user set parameters and sets up 2-d vector
@@ -272,77 +272,37 @@ void Puzzle<T>::play()
 }
 
 template<typename T>
-void Puzzle<T>::solve()
+int Puzzle<T>::findSearchRowOrCol(int x)
 {
-   //check for repeat in row
-   for(int j=0; j<size; j++)
-   {
-      if(board[row-1][j] == number)
-      {
-         scanBoard[row-1][j].push_back(number);
-      }
-   }
-
-   //check for repeat in column
-   for(int i=0; i<size; i++)
-   {
-      if(board[i][col-1] == number)
-      {
-         cout << "Repeat in column." << endl;
-      }
-   }
-
-   //check for repeat in mini-grid
-   int searchRow, searchCol; // first row and column of mini-grid
-
-   if(row > 6)
-      searchRow = 6;
-   else if(row > 3)
-      searchRow = 3;
+   if(x >= 6)
+      return 6;
+   else if(x >= 3)
+      return 3;
    else
-      searchRow = 0;
-
-   if(col > 6)
-      searchCol = 6;
-   else if(col > 3)
-      searchCol = 3;
-   else
-      searchCol = 0;
-
-   for(int a=searchRow; a<searchRow+3; a++)
-   {
-      for(int b=searchCol; b<searchCol+3; b++)
-      {
-         if(board[a][b] == number)
-         {
-            cout << "Repeat in mini-grid" << endl;
-         }
-      }
-   }
-
+      return 0;
 }
 
+
+
+// prints 3d vector with possible values for each space - good for debugging
 template<typename T>
 void Puzzle<T>::print3D()
 {
    for(int i=0; i<size; i++) // each row
    {
-      //vector<T> row;
       for(int j=0; j<size; j++) // each column
       {
-         //vector<T> thirdDim;
          for(int k=0; k<size; k++) // 3rd dim
          {
             cout << scanBoard[i][j][k];
          }
          cout << " | ";
-         //row.push_back(thirdDim);
       }
-      //board.push_back(row);
       cout << endl;
    }
 }
 
+// populates 3d move possibilities vector
 template<typename T>
 void Puzzle<T>::findPossibilities()
 {
@@ -350,40 +310,22 @@ void Puzzle<T>::findPossibilities()
    {
       for(int c=0; c<size; c++) // each column
       {
-
-
-            //check for repeat in mini-grid
-            int searchRow, searchCol; // first row and column of mini-grid
-
-            if(r >= 6)
-               searchRow = 6;
-            else if(r >= 3)
-               searchRow = 3;
-            else
-               searchRow = 0;
-
-            if(c >= 6)
-               searchCol = 6;
-            else if(c >= 3)
-               searchCol = 3;
-            else
-               searchCol = 0;
-
-         
-         for(int num=1; num<=size; num++) // each number 1-9
+                  
+         for(int num=1; num<=size; num++) // each number
          {
 
-
-            for(int x=0; x<size; x++) // check in the row
+            //check the row for a repeat
+            for(int x=0; x<size; x++)
             {
                if(board[r][x] == num)
                {
-                  scanBoard[r][c][num-1] = 0;
+                  scanBoard[r][c][num-1] = 0; // can't place num there
                   break;
                }
             }
 
-            for(int x=0; x<size; x++) // check in the column
+            // check column for repeat
+            for(int x=0; x<size; x++)
             {
                if(board[x][c] == num)
                {
@@ -392,62 +334,61 @@ void Puzzle<T>::findPossibilities()
                }
             }
 
+            //check for repeat in mini-grid
+
+            // get first row and column of mini-grid
+            int searchRow = findSearchRowOrCol(r);
+            int searchCol = findSearchRowOrCol(c); 
+
             for(int a=searchRow; a<searchRow+3; a++) // check in minigrid
             {
                for(int b=searchCol; b<searchCol+3; b++)
                {
                   if(board[a][b] == num)
                   {
-                     //if(r==0 & c==0)
-                        //cout << "number repeated in minigrid: " << num << endl;
                      scanBoard[r][c][num-1] = 0;
                   }
                }
             }
-
-
          }
 
-
-
       }
+
    }
 }
 
+// uses scanning technique to populate some of the board spaces at first - if a space only has 1 possible move, make that move
 template<typename T>
 void Puzzle<T>::AIscan()
 {
    int i=0;
-   while(i<500)
+   while(i<500) // iterate through the board many different times
    {
       i++;
       findPossibilities();
-
       for(int i=0; i<size; i++) // each row
       {
          for(int j=0; j<size; j++) // each column
          {
 
-
-            if(board[i][j] == 0)
+            if(board[i][j] == 0) // a move is still needed in this space
             {
-               int onesCounter=0;
-               int index=0;
+               int onesCounter=0; // tracks possible moves
+               int index=0; // index of possible move in 3d vector
 
-               for(int k=0; k<size; k++) // 3rd dim
+               for(int k=0; k<size; k++) // each index in possible move array
                {
-                  if(scanBoard[i][j][k] == 1)
+                  if(scanBoard[i][j][k] == 1) // if move possible
                   {
                      onesCounter++;
-                     index = k;
+                     index = k; // move
                   }
                }
 
-               if(onesCounter == 1)
+               if(onesCounter == 1) // only 1 move is doable
                {
-                  //cout << i << ", " << j << "index: " << index+1 << endl;
-                  board[i][j] = index+1;
-                  //return 0;
+                  board[i][j] = index+1; // make move
+                  findPossibilities(); // recalculate possibilities
                }
             }
 
@@ -455,20 +396,15 @@ void Puzzle<T>::AIscan()
       }
    
    }
-
-   //return 0;
    
 }
 
+//solves puzzle using singleton technique - if only a single space in a row, column, or mini-grid can make a certain move, make that move
 template<typename T>
 void Puzzle<T>::singleton()
 {
-   // singleton
-   int t=0;
-   int uniqueCounter=0;
-   while(t<10)
+   while(!hasWon()) // while the board is not full
    {
-      t++;
       //findPossibilities();
 
       for(int i=0; i<size; i++) // each row
@@ -478,81 +414,67 @@ void Puzzle<T>::singleton()
 
             for(int num=0; num<size; num++) // each number possibility
             {
+               // sets variables to false that indicate if a specific move in a space is unique to that row/col/minigrid
                bool miniGridUnique = false;
                bool rowUnique = false;
                bool colUnique = false;
 
                if(scanBoard[i][j][num] == 1 && board[i][j] == 0) // if the number works and is unfilled
                {
-                  //cout << i << j << num << "works" << endl;
+                  // set each variable to true until proved false
                   miniGridUnique = true;
                   rowUnique = true;
                   colUnique = true;
 
-
-                  int searchRow, searchCol;
-                  if(i >= 6)
-                     searchRow = 6;
-                  else if(i >= 3)
-                     searchRow = 3;
-                  else
-                     searchRow = 0;
-
-                  if(j >= 6)
-                     searchCol = 6;
-                  else if(j >= 3)
-                     searchCol = 3;
-                  else
-                     searchCol = 0;
-
-
-                  for(int a=searchRow; a<searchRow+3; a++) // check in minigrid
+                  int searchRow=findSearchRowOrCol(i);
+                  int searchCol=findSearchRowOrCol(j);
+  
+                  //check for unique solution in minigrid 
+                  for(int a=searchRow; a<searchRow+3; a++)
                   {
                      for(int b=searchCol; b<searchCol+3; b++)
                      {
-                        if((a != i | b != j) & board[a][b] == 0) // don't check self and make sure non-zero entries are not compared
+                        if((a != i | b != j) & board[a][b] == 0) // don't check itself and make sure non-zero entries are not compared
                         {
-                           if(scanBoard[a][b][num] == 1)
+                           if(scanBoard[a][b][num] == 1) // if a duplicate is found
                            {
                               miniGridUnique = false;
-                              //if(i==3 & j==8 & t==1)
-                                 //cout << "not unique because: " << a << b << endl;
+                              break;
                            }
                         }
                      }
                   }
 
-                  //check in row
+                  //check for unique solution in row
                   for(int c=0; c<size; c++) // each column in row
                   {
-                     if(c != j & board[i][c] == 0) // don't compare to itself
+                     if(c != j & board[i][c] == 0) // don't compare to itself, make sure entry is 0
                      {
                         if(scanBoard[i][c][num] == 1)
+                        {
                            rowUnique = false;
+                           break;
+                        }
                      }
                   }
 
                   //check in column
                   for(int r=0; r<size; r++) // each row in column
                   {
-                     if(r != i & board[r][j] == 0) // don't compare to itself
+                     if(r != i & board[r][j] == 0) // don't compare to itself, make sure entry is 0
                      {
                         if(scanBoard[r][j][num] == 1)
+                        {
                            colUnique = false;
+                           break;
+                        }
                      }
                   }
 
-
-
-                  if(miniGridUnique | rowUnique | colUnique)
+                  if(miniGridUnique | rowUnique | colUnique) // if the entry is unique to either a row column or minigrid
                   {
-                     //cout << "found unique: ";
-                     //cout << miniGridUnique << rowUnique << colUnique << endl;
-                     board[i][j] = num+1;
-                     findPossibilities();
-                     uniqueCounter++;
-                     //if (uniqueCounter==7)
-                       // return 0;
+                     board[i][j] = num+1; // update board with entry
+                     findPossibilities(); // recalculate possible moves based on new board
                   }
                }
             }
@@ -561,9 +483,7 @@ void Puzzle<T>::singleton()
          }
       }
 
-
    }
-   //return 0;
 
 }
 
