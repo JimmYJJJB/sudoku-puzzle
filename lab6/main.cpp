@@ -24,4 +24,4 @@ int main()
    cout << endl << "Solved Puzzle" << endl;
    cout << "=============" << endl;
    intPuz.display();
-} 
+}
